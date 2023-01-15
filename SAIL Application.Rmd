@@ -1,0 +1,75 @@
+---
+title: 'SAIL Lab Application'
+subtitle: "How Stolen Bases affect Runs Scored."
+geometry: margin = 2.25cm
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(Stat2Data)
+library(readr)
+library(rmarkdown)
+```
+
+**Introduction:** Since the 2002 season in Major League Baseball, The United State's "national pastime" has become more and more reliant on raw data and analytics to influence baseball operations for each team around the league. In modern day baseball, one of the biggest tasks for each organization is to bring up new talent from within their organization, for this is a much cheaper alternative then getting players from other teams. As such, the MLB draft has become the best opportunity to gain young players for each team's organization. For hundreds of high school and collegiate athletes around the nation and even the world, the MLB Draft is an opportunity for their dreams to become reality and play for a premier baseball organization. Nevertheless, this pressure also falls heavily on each organization to make the right decision for choosing which of these athletes are going to be the future of their franchise. Thus, most organizations use a ranking system to measure the potential of these prospects. Typically, each hitter is measured in Power, Contact, Arm Strength, Defense, and Speed. 
+
+The Power and Contact categories measure the hitter's ability to hit a baseball for power and the hitter's ability to make contact with the baseball, respectively. Whereas the Arm Strength and Defense categories are supposed to measure the prospects ability to play defense. The last category is Speed. This category measures the speed of the prospect and can be applied to both the offensive and defensive side of the game. However, in modern analytics, we have a tendency to undervalue the measure of players speed when discussing offensive output. For instance, arguably the most important statistic for measuring runs scored in a game is the OPS or On Base Plus Slugging Statistic, for this measures how consistent the hitter makes contact with the baseball for a hit, but also accounts for the power of the hitter. Nonetheless, it doesn't directly take into consideration how the speed of the hitter influences the offensive efficiency of the player, despite Speed being an integral part of the scouting process in measuring the potential of a player. **Therefore, when we incorporate a measure of speed on the base pads in our OPS statistics, does it better reflect the runs scored in a game?**
+
+
+
+**OPS Calculation and Correlation to Runs Scored:** The OPS or On Base Plus Slugging statistic is one of the biggest indicators we use to measure the success of a hitter. We first use the On Base Percentage, which is the sum of walks, hits, and hit by pitches divided by the sum of walks, hits, hit by pitches, at bats, and sacrifice flies. 
+
+**OBP = (H + BB + HBP)/(H + BB + HBP + AB + SF)**
+
+We add this to our slugging statistics, which is total bases divided at bats.
+
+**TB = H + 2x2B + 3x3B + 4xHR     =>    SLG = TB/AB**
+
+As such, the sum of the OBP statistic and the SLG statistic outputs our On Base Plus Slugging or OPS statistic. The OPS of a team has a strong correlation and effect size with runs scored by the team, as depicted in the model below.
+
+**OPS = OBP + SLG**
+
+```{r}
+team_data_prelim <- read_csv("C:/Users/James Jessup/Desktop/Programming Workspaces/STOR 455/mlb_teams_1.csv")
+team_data = subset(team_data_prelim, R < 1000)
+team_data
+```
+*Data retrieved from https://www.baseball-reference.com/leagues/majors/2022.shtml*
+
+```{r}
+plot(R~OBP, data = team_data)
+team_mod = lm(R~OBP, data = team_data)
+abline(team_mod)
+summary(team_mod)
+```
+
+Since the correlation between teams was .8044 and the p-value for this model is <.001, we can conclude a strong relation between OPS and Runs Scored.
+
+
+
+**Incorporating Stolen Bases into OPS:** When taking a look at the offensive efficiency of a hitter, what is the difference between a double and single followed by that hitter stealing second base? At the end of the day, there is now a runner on second base. Of course, pitcher and runner approach and mentality may be different between hitting a double compared to a single then a stolen base; nevertheless, there are the same amount of total bases. 
+
+As such, we are going to incorporate Stolen Bases and the amount of times a Runner is caught stealing into our Total Bases, and then calculate the OPS from that. Thus, our slugging statistic becomes the sum of total bases and stolen bases, then subtracting times caught stealing and dividing that by at bats. We will call this statistic On Base plus Slugging plus Stealing or OBSS.
+
+**OBSS = OBP + (TB + SB - CS)/AB**
+
+Now we will calculate this aggregate statistic for every team in the MLB using our current data.
+
+```{r}
+team_data$OBSS = team_data$OBP + 
+  (team_data$TB + team_data$SB - team_data$CS)/team_data$AB
+team_data
+```
+
+```{r}
+plot(R~OBSS, data = team_data)
+new_team_mod = lm(R~OBSS, data = team_data)
+abline(new_team_mod)
+summary(new_team_mod)
+```
+
+When you try to predict Runs scored using the OBSS statistic, we see how there is a R Squared value of .9135 and a p-value of <.001. As such, our model using the OBSS explains about 10.91% more variance than the model using OBP as the predictor for Runs. As such, this is a significant jump in explaining how Runs are scored in MLB. Therefore, merely looking at preliminary data, we can conclude that its possible when we take stolen bases into consideration for offensive efficiency, we can make a better estimate of how many runs a team should score in a game.
